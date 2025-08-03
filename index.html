@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>괴물을 물리치고, 너의 애완동물을 구하라!</title>
+    <link rel="stylesheet" href="game.css">
+</head>
+<body>
+    <div class="game-container">
+        <h1>🐱 괴물을 물리치고, 너의 애완동물을 구하라! 🐱</h1>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div class="controls">
+            <p>🎮 조작법: 방향키(이동) | 스페이스바(점프) | 1번키/2번키(가관총3발) | R키(장전) | A키(폭격기) | 자동철장열기</p>
+        </div>
+    </div>
+
+    <script src="game-state.js"></script>
+    <script src="game-objects.js"></script>
+    <script src="game-input.js"></script>
+    <script src="game-functions.js"></script>
+    <script src="game-drawing.js"></script>
+    <script src="game-loop.js"></script>
+</body>
+</html>
