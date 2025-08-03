@@ -1,0 +1,10 @@
+[33m2e5adb3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m  PC 버전으로 되돌리기 - 키보드 컨트롤, 터치 컨트롤 제거
+[33m1ff9cd7[m  게임 완전 수정 - 플레이어, 적, 총알이 실제로 나타나도록 수정
+[33m86c3b13[m  게임 수정 - 캔버스에 실제 게임 요소들이 나타나도록 수정
+[33m17b3efc[m  QR 코드 페이지 추가 - 모바일 게임 접속용
+[33mf360c46[m  README 업데이트 - 모바일 게임 설명 및 GitHub Pages 링크 추가
+[33mce23aa9[m  모바일 안드로이드용 게임 추가 - 터치 컨트롤, 반응형 디자인, 점수 시스템
+[33m60cb91e[m Trigger GitHub Pages rebuild
+[33mac277a1[m Force GitHub Pages update
+[33mbeb318e[m Merge branch 'main' of https://github.com/ryoo8099/saving-my-own-cat
+[33mf8a6b17[m Add index.html for GitHub Pages

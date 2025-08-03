@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>괴물을 물리치고, 너의 애완동물을 구하라!</title>
     <link rel="stylesheet" href="game.css">
 </head>
@@ -11,33 +11,8 @@
         <h1>🐱 괴물을 물리치고, 너의 애완동물을 구하라! 🐱</h1>
         <canvas id="gameCanvas" width="800" height="400"></canvas>
         <div class="controls">
-            <p>🎮 조작법: 터치 버튼으로 플레이하세요!</p>
+            <p>🎮 조작법: 방향키(이동) | 스페이스바(점프) | 1번키(발사) | R키(장전)</p>
         </div>
-    </div>
-
-    <!-- 점수 표시 -->
-    <div class="score-display" id="scoreDisplay">
-        점수: <span id="scoreValue">0</span>
-    </div>
-
-    <!-- 모바일 터치 컨트롤 -->
-    <div class="touch-controls">
-        <div class="touch-btn jump" id="jumpBtn">⬆️</div>
-        <div class="touch-btn shoot" id="shootBtn">🔫</div>
-        <div class="touch-btn bomb" id="bombBtn">💣</div>
-    </div>
-
-    <!-- 게임 오버 화면 -->
-    <div class="game-over" id="gameOverScreen" style="display: none;">
-        <h2>게임 오버!</h2>
-        <p>최종 점수: <span id="finalScore">0</span></p>
-        <button id="restartBtn">다시 시작</button>
-    </div>
-
-    <!-- 화면 회전 경고 -->
-    <div class="orientation-warning" id="orientationWarning">
-        <h2>📱 세로 모드로 전환해주세요!</h2>
-        <p>게임을 즐기려면 휴대폰을 세로로 돌려주세요.</p>
     </div>
 
     <script src="game-state.js"></script>

@@ -17,7 +17,7 @@ function gameLoop() {
     
     // 화면 크기에 맞게 캔버스 조정
     const maxWidth = Math.min(800, window.innerWidth - 40);
-    const maxHeight = Math.min(400, window.innerHeight * 0.6);
+    const maxHeight = Math.min(400, window.innerHeight * 0.8);
     
     canvas.style.width = maxWidth + 'px';
     canvas.style.height = maxHeight + 'px';
@@ -76,23 +76,6 @@ function startGame() {
 
 // 페이지 로드 시 게임 시작
 document.addEventListener('DOMContentLoaded', () => {
-    // 모바일 최적화 설정
-    const canvas = document.getElementById('gameCanvas');
-    if (canvas) {
-        // 터치 이벤트 최적화
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-        
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-        
-        canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-    }
-    
     // 게임 시작
     startGame();
 });
@@ -102,7 +85,7 @@ window.addEventListener('resize', () => {
     const canvas = document.getElementById('gameCanvas');
     if (canvas) {
         const maxWidth = Math.min(800, window.innerWidth - 40);
-        const maxHeight = Math.min(400, window.innerHeight * 0.6);
+        const maxHeight = Math.min(400, window.innerHeight * 0.8);
         
         canvas.style.width = maxWidth + 'px';
         canvas.style.height = maxHeight + 'px';
