@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>괴물을 물리치고, 너의 애완동물을 구하라!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            text-align: center;
+        }
+        
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            border: 3px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 100%);
+        }
+        
+        .controls {
+            margin-top: 15px;
+            color: white;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🐱 괴물을 물리치고, 너의 애완동물을 구하라! 🐱</h1>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+                 <div class="controls">
+                          <p>🎮 조작법: 방향키(이동) | 스페이스바(점프) | 1번키/2번키(가관총3발) | R키(장전) | A키(폭격기) | 자동철장열기</p>
+         </div>
+    </div>
+
+    <script>
+        // 게임 캔버스 설정
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 게임 상태
+        let gameState = {
+            score: 0,
+            playerHP: 1500,  // HP를 1500으로 증가
+            maxHP: 1500,     // 최대 HP 설정
+            gameOver: false,
+            level: 1,
+            stage: 1,        // 현재 스테이지
+            ammo: 150,  // 총알 개수 (150으로 증가)
+            maxAmmo: 150,  // 최대 총알 개수 (150으로 증가)
+            isReloading: false,  // 장전 중인지 확인
+            bomberAvailable: true,  // 폭격기 사용 가능 여부
+            hasKey: false,   // 열쇠 보유 여부
+            petRescued: false,  // 애완동물 구출 여부
+            rescueAnimation: false,  // 구출 애니메이션 상태
+            rescueStartTime: 0  // 구출 시작 시간
+        };
+        
+        // 플레이어 (고양이)
+        const player = {
+            x: 100,
+            y: 300,
+            width: 40,
+            height: 40,
+            velocityX: 0,
+            velocityY: 0,
+            isJumping: false,
+            groundY: 300,
+            color: '#FFA500'
+        };
+        
+        // 총알 배열
+        const bullets = [];
+        
+        // 적 배열
+        const enemies = [];
+        
+        // 적 총알 배열
+        const enemyBullets = [];
+        
+        // 보스 배열
+        const bosses = [];
+        
+        // 애완동물 배열
+        const pets = [];
+        
+        // 스테이지 정보
+        const stageInfo = {
+            1: { monsters: 1, bosses: 1, name: "스테이지 1" },
+            2: { monsters: 1, bosses: 1, name: "스테이지 2" },
+            3: { monsters: 1, bosses: 1, name: "최종 스테이지" }
+        };
+        
+        // 스테이지 진행 상황
+        let stageProgress = {
+            monstersKilled: 0,
+            bossesKilled: 0
+        };
+        
+        // 폭격기 배열
+        const bombers = [];
+        
+        // 키보드 입력
+        const keys = {};
+        
+        // 키보드 이벤트 리스너
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // 가관총 발사 (1번키나 2번키 모두 3발씩)
+            if ((e.key === '1' || e.key === '2') && gameState.ammo >= 3 && !gameState.isReloading) {
+                fireBullet(3);
+            }
+            
+            // 장전 (R키만)
+            if ((e.key === 'r' || e.key === 'R') && !gameState.isReloading) {
+                reloadAmmo();
+            }
+            
+            // 폭격기 호출 (A키)
+            if ((e.key === 'a' || e.key === 'A') && gameState.bomberAvailable) {
+                callBomber();
+            }
+            
+            // 열쇠 사용 (K키)
+            if ((e.key === 'k' || e.key === 'K') && gameState.hasKey && !gameState.petRescued) {
+                useKey();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // 총알 발사 함수 (가관총 - 항상 3발씩)
+        function fireBullet(count) {
+            if (gameState.ammo >= 3 && !gameState.isReloading) {
+                // 가관총은 항상 3발씩 발사
+                for (let i = 0; i < 3; i++) {
+                    bullets.push({
+                        x: player.x + player.width,
+                        y: player.y + player.height / 2 + (i - 1) * 3,
+                        width: 8,
+                        height: 4,
+                        speed: 8,
+                        color: '#FFFF00'
+                    });
+                }
+                gameState.ammo -= 3;
+            }
+        }
+        
+        // 장전 함수
+        function reloadAmmo() {
+            if (!gameState.isReloading) {
+                gameState.isReloading = true;
+                console.log("🔫 장전 중...");
+                
+                // 0.5초 후 장전 완료
+                setTimeout(() => {
+                    gameState.ammo = gameState.maxAmmo;
+                    gameState.isReloading = false;
+                    console.log("✅ 장전 완료!");
+                }, 500);
+            }
+        }
+        
+        // 폭격기 호출 함수
+        function callBomber() {
+            if (gameState.bomberAvailable) {
+                gameState.bomberAvailable = false;
+                console.log("🚁 폭격기 호출!");
+                
+                // 폭격기 생성
+                bombers.push({
+                    x: -100,
+                    y: 50,
+                    width: 60,
+                    height: 30,
+                    speed: 3,
+                    bombs: [],
+                    color: '#4A4A4A'
+                });
+                
+                // 0.5초 후 폭격기 재사용 가능
+                setTimeout(() => {
+                    gameState.bomberAvailable = true;
+                    console.log("✅ 폭격기 재사용 가능!");
+                }, 500);
+            }
+        }
+        
+        // 열쇠 사용 함수
+        function useKey() {
+            // 철창 근처에서만 열쇠 사용 가능
+            if (player.x > 700 && player.x < 800) {
+                console.log("🔑 열쇠로 철창을 열고 고양이를 구출합니다!");
+                gameState.rescueAnimation = true;
+                gameState.rescueStartTime = Date.now();
+                gameState.hasKey = false; // 열쇠 사용 완료
+            } else {
+                console.log("❌ 철창 근처로 가서 열쇠를 사용하세요!");
+            }
+        }
+        
+        // 자동 철장 열기 함수 (열쇠 획득 후 철장 근처에서 자동으로 열기)
+        function checkAutoOpenCage() {
+            if (gameState.hasKey && !gameState.petRescued && !gameState.rescueAnimation) {
+                if (player.x > 700 && player.x < 800) {
+                    console.log("🔑 자동으로 철창을 열고 고양이를 구출합니다!");
+                    gameState.rescueAnimation = true;
+                    gameState.rescueStartTime = Date.now();
+                    gameState.hasKey = false;
+                }
+            }
+        }
+        
+        // 플레이어 업데이트
+        function updatePlayer() {
+            // 좌우 이동
+            if (keys['ArrowLeft'] && player.x > 0) {
+                player.x -= 5;
+            }
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) {
+                player.x += 5;
+            }
+            
+            // 점프
+            if (keys[' '] && !player.isJumping) {
+                player.velocityY = -15;
+                player.isJumping = true;
+            }
+            
+            // 중력
+            player.velocityY += 0.8;
+            player.y += player.velocityY;
+            
+            // 바닥 체크
+            if (player.y > player.groundY) {
+                player.y = player.groundY;
+                player.velocityY = 0;
+                player.isJumping = false;
+            }
+        }
+        
+        // 총알 업데이트
+        function updateBullets() {
+            bullets.forEach((bullet, index) => {
+                bullet.x += bullet.speed;
+                
+                // 화면 밖으로 나가면 제거
+                if (bullet.x > canvas.width) {
+                    bullets.splice(index, 1);
+                }
+            });
+        }
+        
+        // 폭격기 업데이트
+        function updateBombers() {
+            bombers.forEach((bomber, bIndex) => {
+                bomber.x += bomber.speed;
+                
+                // 폭격기가 화면 중앙에 도달하면 폭탄 투하
+                if (bomber.x > canvas.width / 2 && bomber.bombs.length === 0) {
+                    // 여러 개의 폭탄 투하
+                    for (let i = 0; i < 5; i++) {
+                        bomber.bombs.push({
+                            x: bomber.x + Math.random() * 200 - 100,
+                            y: bomber.y + bomber.height,
+                            width: 8,
+                            height: 8,
+                            speed: 2,
+                            color: '#FF4500'
+                        });
+                    }
+                }
+                
+                // 폭탄 업데이트
+                bomber.bombs.forEach((bomb, bombIndex) => {
+                    bomb.y += bomb.speed;
+                    
+                    // 폭탄이 바닥에 닿으면 폭발
+                    if (bomb.y > 300) {
+                        bomber.bombs.splice(bombIndex, 1);
+                        
+                        // 폭발 범위 내의 적들 제거
+                        enemies.forEach((enemy, eIndex) => {
+                            const distance = Math.abs(enemy.x - bomb.x);
+                            if (distance < 100) {
+                                enemies.splice(eIndex, 1);
+                                gameState.score += 30;
+                                console.log(`💥 폭격으로 적 처치! 점수: ${gameState.score}`);
+                            }
+                        });
+                    }
+                });
+                
+                // 폭격기가 화면 밖으로 나가면 제거
+                if (bomber.x > canvas.width + 100) {
+                    bombers.splice(bIndex, 1);
+                }
+            });
+        }
+        
+        // 적 생성
+        function createEnemy() {
+            const enemyTypes = [
+                { type: 'monster', width: 30, height: 40, color: '#FF0000', speed: -2, hp: 100, damage: 15 },
+                { type: 'tank', width: 50, height: 30, color: '#8B4513', speed: -1, hp: 50, damage: 25 }
+            ];
+            
+            const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            
+            enemies.push({
+                x: canvas.width,
+                y: 300,
+                width: enemyType.width,
+                height: enemyType.height,
+                color: enemyType.color,
+                speed: enemyType.speed,
+                hp: enemyType.hp,
+                maxHp: enemyType.hp,
+                type: enemyType.type,
+                damage: enemyType.damage,
+                lastAttackTime: 0,  // 마지막 공격 시간
+                lastShootTime: 0    // 마지막 총알 발사 시간
+            });
+        }
+        
+        // 보스 생성
+        function createBoss() {
+            const bossTypes = [
+                { type: 'giant', width: 80, height: 60, color: '#8B0000', speed: -1, hp: 200, damage: 30 },
+                { type: 'robot', width: 70, height: 50, color: '#2F4F4F', speed: -1.5, hp: 150, damage: 25 }
+            ];
+            
+            const bossType = bossTypes[Math.floor(Math.random() * bossTypes.length)];
+            
+            bosses.push({
+                x: canvas.width,
+                y: 280,
+                width: bossType.width,
+                height: bossType.height,
+                color: bossType.color,
+                speed: bossType.speed,
+                hp: bossType.hp,
+                maxHp: bossType.hp,
+                type: bossType.type,
+                damage: bossType.damage,
+                lastAttackTime: 0,
+                lastShootTime: 0
+            });
+        }
+        
+        // 적 업데이트
+        function updateEnemies() {
+            const currentTime = Date.now();
+            
+            enemies.forEach((enemy, index) => {
+                enemy.x += enemy.speed;
+                
+                // 적 총알 발사 (2초마다)
+                if (currentTime - enemy.lastShootTime > 2000) {
+                    enemyBullets.push({
+                        x: enemy.x,
+                        y: enemy.y + enemy.height / 2,
+                        width: 6,
+                        height: 3,
+                        speed: -6,
+                        color: '#FF0000'
+                    });
+                    enemy.lastShootTime = currentTime;
+                }
+                
+                // 플레이어와 적 충돌 체크 (몬스터 공격)
+                if (enemy.x < player.x + player.width &&
+                    enemy.x + enemy.width > player.x &&
+                    enemy.y < player.y + player.height &&
+                    enemy.y + enemy.height > player.y) {
+                    
+                    // 1초마다 한 번씩만 공격
+                    if (currentTime - enemy.lastAttackTime > 1000) {
+                        gameState.playerHP -= enemy.damage;
+                        enemy.lastAttackTime = currentTime;
+                        console.log(`💥 ${enemy.type}에게 공격받음! HP: ${gameState.playerHP}`);
+                    }
+                }
+                
+                // 화면 밖으로 나가면 제거
+                if (enemy.x + enemy.width < 0) {
+                    enemies.splice(index, 1);
+                    gameState.playerHP -= 5; // 적이 지나가면 작은 데미지
+                }
+            });
+        }
+        
+        // 보스 업데이트
+        function updateBosses() {
+            const currentTime = Date.now();
+            
+            bosses.forEach((boss, index) => {
+                boss.x += boss.speed;
+                
+                // 보스 총알 발사 (30초마다)
+                if (currentTime - boss.lastShootTime > 30000) {
+                    // 보스는 3발씩 발사
+                    for (let i = 0; i < 3; i++) {
+                        enemyBullets.push({
+                            x: boss.x,
+                            y: boss.y + boss.height / 2 + (i - 1) * 10,
+                            width: 8,
+                            height: 4,
+                            speed: -8,
+                            color: '#FF4500'
+                        });
+                    }
+                    boss.lastShootTime = currentTime;
+                }
+                
+                // 플레이어와 보스 충돌 체크
+                if (boss.x < player.x + player.width &&
+                    boss.x + boss.width > player.x &&
+                    boss.y < player.y + player.height &&
+                    boss.y + boss.height > player.y) {
+                    
+                    // 1초마다 한 번씩만 공격
+                    if (currentTime - boss.lastAttackTime > 1000) {
+                        gameState.playerHP -= boss.damage;
+                        boss.lastAttackTime = currentTime;
+                        console.log(`💥 ${boss.type} 보스에게 공격받음! HP: ${gameState.playerHP}`);
+                    }
+                }
+                
+                // 화면 밖으로 나가면 제거
+                if (boss.x + boss.width < 0) {
+                    bosses.splice(index, 1);
+                    gameState.playerHP -= 20; // 보스가 지나가면 큰 데미지
+                }
+            });
+        }
+        
+        // 적 총알 업데이트
+        function updateEnemyBullets() {
+            enemyBullets.forEach((bullet, index) => {
+                bullet.x += bullet.speed;
+                
+                // 화면 밖으로 나가면 제거
+                if (bullet.x < 0) {
+                    enemyBullets.splice(index, 1);
+                }
+            });
+        }
+        
+        // 충돌 체크
+        function checkCollisions() {
+            // 플레이어 총알과 적 충돌
+            bullets.forEach((bullet, bIndex) => {
+                enemies.forEach((enemy, eIndex) => {
+                    if (bullet.x < enemy.x + enemy.width &&
+                        bullet.x + bullet.width > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + bullet.height > enemy.y) {
+                        
+                        // 총알 제거
+                        bullets.splice(bIndex, 1);
+                        
+                        // 적 체력 감소
+                        enemy.hp -= 10;
+                        gameState.score += 5;
+                        
+                        // 적 제거
+                        if (enemy.hp <= 0) {
+                            enemies.splice(eIndex, 1);
+                            gameState.score += 20;
+                            stageProgress.monstersKilled++;
+                            
+                            // HP 회복 (적 타입에 따라)
+                            if (enemy.type === 'tank') {
+                                // 갈색 탱크를 죽이면 HP 50 회복
+                                gameState.playerHP = Math.min(gameState.playerHP + 50, gameState.maxHP);
+                                console.log(`💚 탱크 처치! HP 50 회복! 현재 HP: ${gameState.playerHP}`);
+                            } else if (enemy.type === 'monster') {
+                                // 빨간색 몬스터를 죽이면 HP 100 회복
+                                gameState.playerHP = Math.min(gameState.playerHP + 100, gameState.maxHP);
+                                console.log(`💚 몬스터 처치! HP 100 회복! 현재 HP: ${gameState.playerHP}`);
+                            }
+                            
+                            // 스테이지 완료 체크
+                            checkStageComplete();
+                        }
+                    }
+                });
+                
+                // 플레이어 총알과 보스 충돌
+                bosses.forEach((boss, bIndex) => {
+                    if (bullet.x < boss.x + boss.width &&
+                        bullet.x + bullet.width > boss.x &&
+                        bullet.y < boss.y + boss.height &&
+                        bullet.y + bullet.height > boss.y) {
+                        
+                        // 총알 제거
+                        bullets.splice(bIndex, 1);
+                        
+                        // 보스 체력 감소
+                        boss.hp -= 15;
+                        gameState.score += 10;
+                        
+                        // 보스 제거
+                        if (boss.hp <= 0) {
+                            bosses.splice(bIndex, 1);
+                            gameState.score += 100;
+                            stageProgress.bossesKilled++;
+                            gameState.playerHP = Math.min(gameState.playerHP + 150, gameState.maxHP);
+                            console.log(`💚 보스 처치! HP 150 회복! 점수: ${gameState.score}`);
+                            
+                            // 스테이지 완료 체크
+                            checkStageComplete();
+                        }
+                    }
+                });
+            });
+            
+            // 적 총알과 플레이어 충돌
+            enemyBullets.forEach((bullet, bIndex) => {
+                if (bullet.x < player.x + player.width &&
+                    bullet.x + bullet.width > player.x &&
+                    bullet.y < player.y + player.height &&
+                    bullet.y + bullet.height > player.y) {
+                    
+                    // 적 총알 제거
+                    enemyBullets.splice(bIndex, 1);
+                    
+                    // 플레이어 데미지
+                    gameState.playerHP -= 10;
+                    console.log(`💥 적 총알에 맞음! HP: ${gameState.playerHP}`);
+                }
+            });
+        }
+        
+        // 플레이어 그리기 (고양이)
+        function drawPlayer() {
+            // 고양이 몸체 (HP에 따라 색상 변화)
+            const healthPercentage = gameState.playerHP / gameState.maxHP;
+            let bodyColor = player.color;
+            
+            if (healthPercentage < 0.3) {
+                bodyColor = '#FF0000'; // 빨간색 (위험)
+            } else if (healthPercentage < 0.6) {
+                bodyColor = '#FFA500'; // 주황색 (주의)
+            }
+            
+            ctx.fillStyle = bodyColor;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // 고양이 얼굴
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(player.x + 20, player.y + 15, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 고양이 귀
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(player.x + 5, player.y - 5, 8, 15);
+            ctx.fillRect(player.x + 27, player.y - 5, 8, 15);
+            
+            // 고양이 눈
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(player.x + 15, player.y + 10, 3, 0, Math.PI * 2);
+            ctx.arc(player.x + 25, player.y + 10, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+                         // 고양이 가관총 (더 큰 총)
+             ctx.fillStyle = '#333';
+             ctx.fillRect(player.x + 35, player.y + 15, 25, 6);
+             // 가관총 배럴
+             ctx.fillStyle = '#666';
+             ctx.fillRect(player.x + 35, player.y + 13, 3, 10);
+             ctx.fillRect(player.x + 35, player.y + 17, 3, 10);
+            
+            // 플레이어 HP 바
+            const hpBarWidth = player.width;
+            const hpBarHeight = 4;
+            const hpPercentage = gameState.playerHP / gameState.maxHP;
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(player.x, player.y - 10, hpBarWidth, hpBarHeight);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(player.x, player.y - 10, hpBarWidth * hpPercentage, hpBarHeight);
+        }
+        
+        // 총알 그리기
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+        
+        // 폭격기 그리기
+        function drawBombers() {
+            bombers.forEach(bomber => {
+                // 폭격기 몸체
+                ctx.fillStyle = bomber.color;
+                ctx.fillRect(bomber.x, bomber.y, bomber.width, bomber.height);
+                
+                // 폭격기 날개
+                ctx.fillStyle = '#666';
+                ctx.fillRect(bomber.x - 10, bomber.y + 5, 20, 8);
+                ctx.fillRect(bomber.x + bomber.width - 10, bomber.y + 5, 20, 8);
+                
+                // 폭탄 그리기
+                bomber.bombs.forEach(bomb => {
+                    ctx.fillStyle = bomb.color;
+                    ctx.fillRect(bomb.x, bomb.y, bomb.width, bomb.height);
+                });
+            });
+        }
+        
+        // 적 그리기
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                // 적 몸체
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                
+                // 적 총
+                ctx.fillStyle = '#333';
+                ctx.fillRect(enemy.x - 15, enemy.y + enemy.height / 2 - 2, 15, 4);
+                
+                // HP 바
+                const hpBarWidth = enemy.width;
+                const hpBarHeight = 4;
+                const hpPercentage = enemy.hp / enemy.maxHp;
+                
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(enemy.x, enemy.y - 10, hpBarWidth, hpBarHeight);
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(enemy.x, enemy.y - 10, hpBarWidth * hpPercentage, hpBarHeight);
+            });
+        }
+        
+        // 보스 그리기
+        function drawBosses() {
+            bosses.forEach(boss => {
+                // 보스 몸체
+                ctx.fillStyle = boss.color;
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+                
+                // 보스 총
+                ctx.fillStyle = '#333';
+                ctx.fillRect(boss.x - 20, boss.y + boss.height / 2 - 3, 20, 6);
+                
+                // 보스 HP 바
+                const hpBarWidth = boss.width;
+                const hpBarHeight = 6;
+                const hpPercentage = boss.hp / boss.maxHp;
+                
+                ctx.fillStyle = '#FF0000';
+                ctx.fillRect(boss.x, boss.y - 15, hpBarWidth, hpBarHeight);
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(boss.x, boss.y - 15, hpBarWidth * hpPercentage, hpBarHeight);
+                
+                // 보스 라벨
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.fillText(`BOSS ${boss.type}`, boss.x, boss.y - 20);
+            });
+        }
+        
+        // 스테이지 완료 체크
+        function checkStageComplete() {
+            const currentStage = stageInfo[gameState.stage];
+            if (stageProgress.monstersKilled >= currentStage.monsters && 
+                stageProgress.bossesKilled >= currentStage.bosses) {
+                
+                if (gameState.stage < 3) {
+                    // 다음 스테이지로 진행
+                    gameState.stage++;
+                    stageProgress.monstersKilled = 0;
+                    stageProgress.bossesKilled = 0;
+                    console.log(`🎉 스테이지 ${gameState.stage - 1} 완료! 스테이지 ${gameState.stage} 시작!`);
+                } else {
+                    // 게임 클리어
+                    gameState.hasKey = true;
+                    console.log("🎉 모든 스테이지 완료! 열쇠를 획득했습니다!");
+                }
+            }
+        }
+        
+        // 고양이 그리기 (철창에 갇힌)
+        function drawCagedCat() {
+            // 철창 (5cm 더 아래로 이동 - y: 70 → 120)
+            ctx.fillStyle = '#666';
+            ctx.fillRect(750, 120, 40, 60);
+            
+            // 철창 막대들
+            for (let i = 0; i < 5; i++) {
+                ctx.fillStyle = '#333';
+                ctx.fillRect(752 + i * 8, 120, 2, 60);
+            }
+            
+            // 자물쇠 (열쇠로 열기 전까지 표시)
+            if (!gameState.rescueAnimation && !gameState.petRescued) {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(770, 140, 8, 12);
+                
+                // 자물쇠 구멍
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(774, 146, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 고양이
+            if (!gameState.rescueAnimation && !gameState.petRescued) {
+                // 갇힌 고양이
+                drawCagedCatBody();
+            } else if (gameState.rescueAnimation) {
+                // 구출 애니메이션 중인 고양이
+                drawRescueAnimation();
+            } else {
+                // 구출 완료된 고양이 (만세하는 모습)
+                drawRescuedCat();
+            }
+        }
+        
+        // 갇힌 고양이 그리기
+        function drawCagedCatBody() {
+            // 고양이 몸체 (5cm 더 아래로 이동 - y: 80 → 130)
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(755, 130, 30, 30);
+            
+            // 고양이 얼굴
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(770, 140, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 고양이 눈
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(767, 138, 2, 0, Math.PI * 2);
+            ctx.arc(773, 138, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 고양이 입 (슬픈 표정)
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(770, 145, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 구출 애니메이션 그리기
+        function drawRescueAnimation() {
+            const currentTime = Date.now();
+            const elapsed = currentTime - gameState.rescueStartTime;
+            
+            if (elapsed < 3000) { // 3초간 애니메이션
+                // 철창에서 화면 중앙으로 이동하는 애니메이션
+                const progress = elapsed / 3000;
+                const startX = 755;
+                const endX = canvas.width / 2 - 15; // 화면 중앙
+                const catX = startX + (endX - startX) * progress;
+                const catY = 130 + (300 - 130) * progress; // 땅으로 내려오는 효과 (시작점을 130으로 조정)
+                
+                // 고양이 몸체
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(catX, catY, 30, 30);
+                
+                // 고양이 얼굴
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(catX + 15, catY + 10, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 고양이 눈 (행복한 표정)
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(catX + 12, catY + 8, 2, 0, Math.PI * 2);
+                ctx.arc(catX + 18, catY + 8, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 고양이 입 (웃는 표정)
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(catX + 15, catY + 15, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 고양이 귀
+                ctx.fillStyle = '#FFA500';
+                ctx.fillRect(catX + 5, catY - 5, 8, 15);
+                ctx.fillRect(catX + 17, catY - 5, 8, 15);
+                
+                // 구출 메시지
+                ctx.fillStyle = 'gold';
+                ctx.font = '16px Arial';
+                ctx.fillText('🎉 구출 완료!', catX - 10, catY - 30);
+            } else {
+                // 애니메이션 완료
+                gameState.rescueAnimation = false;
+                gameState.petRescued = true;
+            }
+        }
+        
+        // 구출된 고양이 그리기 (만세하는 모습)
+        function drawRescuedCat() {
+            // 화면 중앙 위치 계산
+            const screenCenterX = canvas.width / 2;
+            const rescuedCatX = screenCenterX - 15; // 고양이 너비의 절반
+            const rescuedCatY = 300; // 땅에 착지 (플레이어와 같은 높이)
+            
+            // 구출된 고양이 몸체
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(rescuedCatX, rescuedCatY, 30, 30);
+            
+            // 구출된 고양이 얼굴
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(rescuedCatX + 15, rescuedCatY + 10, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 구출된 고양이 눈 (행복한 표정)
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(rescuedCatX + 12, rescuedCatY + 8, 2, 0, Math.PI * 2);
+            ctx.arc(rescuedCatX + 18, rescuedCatY + 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 구출된 고양이 입 (웃는 표정)
+            ctx.fillStyle = '#FF0000';
+            ctx.beginPath();
+            ctx.arc(rescuedCatX + 15, rescuedCatY + 15, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 구출된 고양이 귀
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(rescuedCatX + 5, rescuedCatY - 5, 8, 15);
+            ctx.fillRect(rescuedCatX + 17, rescuedCatY - 5, 8, 15);
+            
+            // 만세하는 팔
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(rescuedCatX + 25, rescuedCatY - 15, 4, 15); // 오른팔
+            ctx.fillRect(rescuedCatX + 1, rescuedCatY - 15, 4, 15);  // 왼팔
+            
+            // 만세 메시지
+            ctx.fillStyle = 'gold';
+            ctx.font = '14px Arial';
+            ctx.fillText('🎉 만세!', rescuedCatX - 5, rescuedCatY - 35);
+            
+            // 플레이어도 화면 중앙으로 이동해서 만세하는 모습 추가
+            drawPlayerCenterCelebration();
+        }
+        
+        // 플레이어 축하 모습 그리기
+        function drawPlayerCelebration() {
+            // 플레이어 만세하는 팔
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(player.x + 15, player.y - 15, 4, 15); // 왼팔
+            ctx.fillRect(player.x + 21, player.y - 15, 4, 15); // 오른팔
+            
+            // 플레이어 축하 메시지
+            ctx.fillStyle = 'gold';
+            ctx.font = '12px Arial';
+            ctx.fillText('🎉 성공!', player.x - 10, player.y - 35);
+        }
+        
+        // 플레이어 중앙 축하 모습 그리기
+        function drawPlayerCenterCelebration() {
+            // 플레이어를 화면 중앙으로 이동
+            const screenCenterX = canvas.width / 2;
+            const playerCenterX = screenCenterX + 50; // 고양이 옆에 위치
+            
+            // 플레이어 몸체 (중앙에 위치)
+            const healthPercentage = gameState.playerHP / gameState.maxHP;
+            let bodyColor = player.color;
+            
+            if (healthPercentage < 0.3) {
+                bodyColor = '#FF0000'; // 빨간색 (위험)
+            } else if (healthPercentage < 0.6) {
+                bodyColor = '#FFA500'; // 주황색 (주의)
+            }
+            
+            ctx.fillStyle = bodyColor;
+            ctx.fillRect(playerCenterX, 300, player.width, player.height);
+            
+            // 플레이어 얼굴
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(playerCenterX + 20, 315, 12, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 플레이어 귀
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(playerCenterX + 5, 295, 8, 15);
+            ctx.fillRect(playerCenterX + 27, 295, 8, 15);
+            
+            // 플레이어 눈
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(playerCenterX + 15, 310, 3, 0, Math.PI * 2);
+            ctx.arc(playerCenterX + 25, 310, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 플레이어 가관총
+            ctx.fillStyle = '#333';
+            ctx.fillRect(playerCenterX + 35, 315, 25, 6);
+            ctx.fillStyle = '#666';
+            ctx.fillRect(playerCenterX + 35, 313, 3, 10);
+            ctx.fillRect(playerCenterX + 35, 317, 3, 10);
+            
+            // 플레이어 만세하는 팔
+            ctx.fillStyle = '#FFA500';
+            ctx.fillRect(playerCenterX + 15, 285, 4, 15); // 왼팔
+            ctx.fillRect(playerCenterX + 21, 285, 4, 15); // 오른팔
+            
+            // 플레이어 축하 메시지
+            ctx.fillStyle = 'gold';
+            ctx.font = '12px Arial';
+            ctx.fillText('🎉 성공!', playerCenterX - 10, 265);
+            
+            // 함께 만세하는 메시지
+            ctx.fillStyle = 'gold';
+            ctx.font = '16px Arial';
+            ctx.fillText('🎉 함께 만세! 🎉', screenCenterX - 50, 250);
+        }
+        
+        // 열쇠 그리기
+        function drawKey() {
+            if (gameState.hasKey && !gameState.petRescued) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(player.x + 10, player.y - 20, 15, 8);
+                ctx.fillRect(player.x + 20, player.y - 18, 4, 4);
+            }
+        }
+        
+        // 적 총알 그리기
+        function drawEnemyBullets() {
+            enemyBullets.forEach(bullet => {
+                ctx.fillStyle = bullet.color;
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, bullet.height);
+            });
+        }
+        
+        // UI 그리기
+        function drawUI() {
+            // 점수
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`점수: ${gameState.score}`, 10, 30);
+            
+            // 플레이어 HP (색상 변화)
+            const hpColor = gameState.playerHP > gameState.maxHP * 0.6 ? 'black' : gameState.playerHP > gameState.maxHP * 0.3 ? 'orange' : 'red';
+            ctx.fillStyle = hpColor;
+            ctx.font = '16px Arial';
+            ctx.fillText(`HP: ${gameState.playerHP}/${gameState.maxHP}`, 10, 50);
+            
+            // 스테이지 정보
+            ctx.fillStyle = 'black';
+            ctx.font = '16px Arial';
+            ctx.fillText(`스테이지: ${gameState.stage}`, 10, 70);
+            ctx.fillText(`몬스터: ${stageProgress.monstersKilled}/${stageInfo[gameState.stage].monsters}`, 10, 90);
+            ctx.fillText(`보스: ${stageProgress.bossesKilled}/${stageInfo[gameState.stage].bosses}`, 10, 110);
+            
+            // 총알 개수
+            ctx.fillStyle = gameState.ammo > 0 ? 'black' : 'red';
+            ctx.font = '16px Arial';
+            ctx.fillText(`총알: ${gameState.ammo}/${gameState.maxAmmo}`, 10, 130);
+            
+            // 장전 중 표시
+            if (gameState.isReloading) {
+                ctx.fillStyle = 'orange';
+                ctx.font = '14px Arial';
+                ctx.fillText('🔫 장전 중...', 10, 150);
+            }
+            
+            // 경고 메시지
+            if (gameState.playerHP < gameState.maxHP * 0.3) {
+                ctx.fillStyle = 'red';
+                ctx.font = '18px Arial';
+                ctx.fillText('⚠️ 위험! HP가 낮습니다!', 10, 170);
+            }
+            
+            // HP 회복 안내
+            ctx.fillStyle = 'green';
+            ctx.font = '12px Arial';
+            ctx.fillText('💚 탱크 처치: HP +50 | 몬스터 처치: HP +100', 10, 190);
+            
+            // 폭격기 상태
+            if (gameState.bomberAvailable) {
+                ctx.fillStyle = 'blue';
+                ctx.font = '12px Arial';
+                ctx.fillText('🚁 A키: 폭격기 호출 가능', 10, 210);
+            } else {
+                ctx.fillStyle = 'gray';
+                ctx.font = '12px Arial';
+                ctx.fillText('🚁 폭격기 재충전 중...', 10, 210);
+            }
+            
+            // 보스 정보
+            if (bosses.length > 0) {
+                ctx.fillStyle = 'red';
+                ctx.font = '14px Arial';
+                ctx.fillText('⚠️ 보스 출현! 주의하세요!', 10, 230);
+            }
+            
+            // 열쇠 보유 정보
+            if (gameState.hasKey) {
+                ctx.fillStyle = 'gold';
+                ctx.font = '14px Arial';
+                ctx.fillText('🔑 열쇠 획득! 철창 근처에서 자동으로 고양이를 구출합니다!', 10, 250);
+            }
+        }
+        
+        // 게임오버 화면
+        function drawGameOver() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = 'red';
+            ctx.font = '48px Arial';
+            ctx.fillText('게임 오버!', 250, 180);
+            
+            ctx.fillStyle = 'white';
+            ctx.font = '24px Arial';
+            ctx.fillText(`최종 점수: ${gameState.score}`, 300, 220);
+        }
+        
+        // 게임 클리어 화면
+        function drawGameClear() {
+            if (gameState.petRescued) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = 'gold';
+                ctx.font = '48px Arial';
+                ctx.fillText('게임 클리어!', 250, 180);
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '24px Arial';
+                ctx.fillText(`최종 점수: ${gameState.score}`, 300, 220);
+                ctx.fillText('고양이를 구출했습니다!', 280, 250);
+                ctx.fillText('🎉 축하합니다! 🎉', 300, 280);
+            }
+        }
+        
+        // 게임 루프
+        function gameLoop() {
+            // 화면 클리어
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!gameState.gameOver && !gameState.petRescued) {
+                // 플레이어 업데이트
+                updatePlayer();
+                
+                // 총알 업데이트
+                updateBullets();
+                
+                // 폭격기 업데이트
+                updateBombers();
+                
+                // 적 업데이트
+                updateEnemies();
+                
+                // 보스 업데이트
+                updateBosses();
+                
+                // 적 총알 업데이트
+                updateEnemyBullets();
+                
+                // 충돌 체크
+                checkCollisions();
+                
+                // 자동 철장 열기 체크
+                checkAutoOpenCage();
+                
+                // 스테이지 3에서 열쇠를 얻은 후에는 적 생성 중단
+                if (!(gameState.stage === 3 && gameState.hasKey)) {
+                    // 적 생성 (2초마다)
+                    if (Math.random() < 0.02) {
+                        createEnemy();
+                    }
+                    
+                    // 보스 생성 (30초마다)
+                    if (Math.random() < 0.005) {
+                        createBoss();
+                    }
+                }
+                
+                // 자동 재장전 (총알이 0이 되면 0.1초 후 자동 재장전)
+                if (gameState.ammo <= 0 && !gameState.isReloading) {
+                    setTimeout(() => {
+                        gameState.ammo = gameState.maxAmmo;
+                        console.log("🔫 자동 재장전 완료!");
+                    }, 100);
+                }
+                
+                // 게임오버 체크
+                if (gameState.playerHP <= 0) {
+                    gameState.gameOver = true;
+                }
+                
+                // 그리기
+                drawPlayer();
+                drawBullets();
+                drawBombers();
+                drawEnemies();
+                drawBosses();
+                drawEnemyBullets();
+                drawCagedCat();
+                drawKey();
+                drawUI();
+                
+                // 게임 클리어 체크
+                drawGameClear();
+            } else if (gameState.gameOver) {
+                drawGameOver();
+            } else if (gameState.petRescued) {
+                drawGameClear();
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 게임 시작
+        console.log("🐱 괴물을 물리치고, 너의 애완동물을 구하라! 게임이 시작되었습니다!");
+        gameLoop();
+    </script>
+</body>
+</html> 

@@ -11,12 +11,11 @@ function gameLoop() {
         return;
     }
     
-    // 캔버스 크기 조정 (모바일 최적화)
+    // 캔버스 가져오기
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
     // 화면 크기에 맞게 캔버스 조정
-    const container = canvas.parentElement;
     const maxWidth = Math.min(800, window.innerWidth - 40);
     const maxHeight = Math.min(400, window.innerHeight * 0.6);
     
@@ -30,37 +29,26 @@ function gameLoop() {
     drawBackground(ctx);
     
     // 플레이어 업데이트 및 그리기
-    if (typeof updatePlayer === 'function') {
-        updatePlayer();
-    }
-    if (typeof drawPlayer === 'function') {
-        drawPlayer(ctx);
-    }
+    updatePlayer();
+    drawPlayer(ctx);
     
     // 적들 업데이트 및 그리기
-    if (typeof updateEnemies === 'function') {
-        updateEnemies();
-    }
-    if (typeof drawEnemies === 'function') {
-        drawEnemies(ctx);
-    }
+    updateEnemies();
+    drawEnemies(ctx);
     
     // 총알들 업데이트 및 그리기
-    if (typeof updateBullets === 'function') {
-        updateBullets();
-    }
-    if (typeof drawBullets === 'function') {
-        drawBullets(ctx);
-    }
+    updateBullets();
+    drawBullets(ctx);
     
     // 충돌 감지
-    if (typeof checkCollisions === 'function') {
-        checkCollisions();
-    }
+    checkCollisions();
     
     // UI 그리기
-    if (typeof drawUI === 'function') {
-        drawUI(ctx);
+    drawUI(ctx);
+    
+    // 게임 클리어 체크
+    if (gameState.petRescued) {
+        drawGameClear(ctx);
     }
     
     // 다음 프레임 요청
