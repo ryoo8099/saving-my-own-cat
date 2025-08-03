@@ -1,12 +1,12 @@
 // 게임 루프
 function gameLoop() {
     // 게임 오버 상태 체크
-    if (gameState.gameOver) {
+    if (gameState && gameState.gameOver) {
         return; // 게임 오버 시 루프 중단
     }
     
     // 일시정지 상태 체크
-    if (gameState.isPaused) {
+    if (gameState && gameState.isPaused) {
         requestAnimationFrame(gameLoop);
         return;
     }
@@ -26,28 +26,46 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // 배경 그리기
-    drawBackground(ctx);
+    if (typeof drawBackground === 'function') {
+        drawBackground(ctx);
+    }
     
     // 플레이어 업데이트 및 그리기
-    updatePlayer();
-    drawPlayer(ctx);
+    if (typeof updatePlayer === 'function') {
+        updatePlayer();
+    }
+    if (typeof drawPlayer === 'function') {
+        drawPlayer(ctx);
+    }
     
     // 적들 업데이트 및 그리기
-    updateEnemies();
-    drawEnemies(ctx);
+    if (typeof updateEnemies === 'function') {
+        updateEnemies();
+    }
+    if (typeof drawEnemies === 'function') {
+        drawEnemies(ctx);
+    }
     
     // 총알들 업데이트 및 그리기
-    updateBullets();
-    drawBullets(ctx);
+    if (typeof updateBullets === 'function') {
+        updateBullets();
+    }
+    if (typeof drawBullets === 'function') {
+        drawBullets(ctx);
+    }
     
     // 충돌 감지
-    checkCollisions();
+    if (typeof checkCollisions === 'function') {
+        checkCollisions();
+    }
     
     // UI 그리기
-    drawUI(ctx);
+    if (typeof drawUI === 'function') {
+        drawUI(ctx);
+    }
     
     // 게임 클리어 체크
-    if (gameState.petRescued) {
+    if (gameState && gameState.petRescued && typeof drawGameClear === 'function') {
         drawGameClear(ctx);
     }
     
@@ -61,13 +79,17 @@ function startGame() {
     
     // 초기 적 생성
     setTimeout(() => {
-        createEnemy();
+        if (typeof createEnemy === 'function') {
+            createEnemy();
+        }
     }, 2000);
     
     // 주기적으로 적 생성
     setInterval(() => {
-        if (!gameState.gameOver && enemies.length < 3) {
-            createEnemy();
+        if (gameState && !gameState.gameOver && enemies && enemies.length < 3) {
+            if (typeof createEnemy === 'function') {
+                createEnemy();
+            }
         }
     }, 3000);
     

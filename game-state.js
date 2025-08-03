@@ -76,22 +76,13 @@ const gameState = {
 // 점수 업데이트 함수
 function updateScore(points) {
     gameState.score += points;
-    const scoreElement = document.getElementById('scoreValue');
-    if (scoreElement) {
-        scoreElement.textContent = gameState.score;
-    }
+    console.log("점수 업데이트:", gameState.score);
 }
 
 // 게임 오버 처리
 function gameOver() {
     gameState.gameOver = true;
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    const finalScoreElement = document.getElementById('finalScore');
-    
-    if (gameOverScreen && finalScoreElement) {
-        finalScoreElement.textContent = gameState.score;
-        gameOverScreen.style.display = 'flex';
-    }
+    console.log("게임 오버!");
 }
 
 // 게임 재시작
@@ -106,18 +97,6 @@ function restartGame() {
     gameState.petRescued = false;
     gameState.level = 1;
     gameState.enemiesDefeated = 0;
-    
-    // 점수 표시 업데이트
-    const scoreElement = document.getElementById('scoreValue');
-    if (scoreElement) {
-        scoreElement.textContent = '0';
-    }
-    
-    // 게임 오버 화면 숨기기
-    const gameOverScreen = document.getElementById('gameOverScreen');
-    if (gameOverScreen) {
-        gameOverScreen.style.display = 'none';
-    }
     
     // 게임 객체들 초기화
     if (typeof resetGameObjects === 'function') {
