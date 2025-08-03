@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 모바일 게임 QR 코드</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .qr-code {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+        
+        .game-link {
+            background: #4A90E2;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px 0;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .game-link:hover {
+            background: #357ABD;
+            transform: scale(1.05);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 모바일 게임</h1>
+        <p><strong>괴물을 물리치고, 너의 애완동물을 구하라!</strong></p>
+        
+        <div class="qr-code">
+            <p>📱 QR 코드를 스캔하여 모바일에서 플레이하세요!</p>
+            <!-- QR 코드는 GitHub Pages URL로 생성됩니다 -->
+            <div id="qrcode"></div>
+        </div>
+        
+        <a href="game.html" class="game-link">🎮 게임 플레이하기</a>
+        
+        <div class="instructions">
+            <h3>📱 모바일 플레이 방법:</h3>
+            <ol style="text-align: left;">
+                <li>위 링크를 클릭하거나 QR 코드 스캔</li>
+                <li>터치 버튼으로 게임 조작</li>
+                <li>⬆️ 점프, 🔫 발사, 💣 폭탄</li>
+                <li>세로 모드 권장</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script>
+        // QR 코드 생성
+        const gameUrl = window.location.origin + window.location.pathname.replace('qr-code.html', 'game.html');
+        
+        QRCode.toCanvas(document.getElementById('qrcode'), gameUrl, {
+            width: 200,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        }, function (error) {
+            if (error) console.error(error);
+            console.log('QR 코드가 생성되었습니다!');
+        });
+    </script>
+</body>
+</html> 
