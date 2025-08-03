@@ -1,0 +1,48 @@
+body {
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.game-container {
+    text-align: center;
+}
+
+h1 {
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+}
+
+canvas {
+    border: 3px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    background: linear-gradient(to bottom, #2F4F4F 0%, #8B4513 50%, #556B2F 100%);
+    transition: background 2s ease-in-out;
+}
+
+/* 구출 완료 시 배경 변경 */
+canvas.rescued {
+    background: linear-gradient(to bottom, #FF69B4 0%, #FFB6C1 50%, #98FB98 100%) !important;
+    animation: celebration 3s infinite;
+}
+
+@keyframes celebration {
+    0% { background: linear-gradient(to bottom, #FF69B4 0%, #FFB6C1 50%, #98FB98 100%); }
+    25% { background: linear-gradient(to bottom, #FFB6C1 0%, #98FB98 50%, #FF69B4 100%); }
+    50% { background: linear-gradient(to bottom, #98FB98 0%, #FF69B4 50%, #FFB6C1 100%); }
+    75% { background: linear-gradient(to bottom, #FFB6C1 0%, #FF69B4 50%, #98FB98 100%); }
+    100% { background: linear-gradient(to bottom, #FF69B4 0%, #FFB6C1 50%, #98FB98 100%); }
+}
+
+.controls {
+    margin-top: 15px;
+    color: white;
+    font-size: 14px;
+} 
