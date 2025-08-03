@@ -58,25 +58,105 @@ function playSound(soundName) {
     }
 }
 
-// 게임 상태
-let gameState = {
+// 게임 상태 관리
+const gameState = {
     score: 0,
-    playerHP: 1500,
-    maxHP: 1500,
     gameOver: false,
-    level: 1,
-    stage: 1,
-    ammo: 150,
-    maxAmmo: 150,
+    isPaused: false,
+    ammo: 30,
+    maxAmmo: 30,
     isReloading: false,
     bomberAvailable: true,
     hasKey: false,
     petRescued: false,
-    rescueAnimation: false,
-    rescueStartTime: 0,
-    lastEnemySpawnTime: 0,
-    lastBossSpawnTime: 0
+    level: 1,
+    enemiesDefeated: 0
 };
+
+// 점수 업데이트 함수
+function updateScore(points) {
+    gameState.score += points;
+    const scoreElement = document.getElementById('scoreValue');
+    if (scoreElement) {
+        scoreElement.textContent = gameState.score;
+    }
+}
+
+// 게임 오버 처리
+function gameOver() {
+    gameState.gameOver = true;
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreElement = document.getElementById('finalScore');
+    
+    if (gameOverScreen && finalScoreElement) {
+        finalScoreElement.textContent = gameState.score;
+        gameOverScreen.style.display = 'flex';
+    }
+}
+
+// 게임 재시작
+function restartGame() {
+    gameState.score = 0;
+    gameState.gameOver = false;
+    gameState.isPaused = false;
+    gameState.ammo = 30;
+    gameState.isReloading = false;
+    gameState.bomberAvailable = true;
+    gameState.hasKey = false;
+    gameState.petRescued = false;
+    gameState.level = 1;
+    gameState.enemiesDefeated = 0;
+    
+    // 점수 표시 업데이트
+    const scoreElement = document.getElementById('scoreValue');
+    if (scoreElement) {
+        scoreElement.textContent = '0';
+    }
+    
+    // 게임 오버 화면 숨기기
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    if (gameOverScreen) {
+        gameOverScreen.style.display = 'none';
+    }
+    
+    // 게임 객체들 초기화
+    if (typeof resetGameObjects === 'function') {
+        resetGameObjects();
+    }
+    
+    console.log("게임이 재시작되었습니다!");
+}
+
+// 재시작 버튼 이벤트 리스너
+document.addEventListener('DOMContentLoaded', () => {
+    const restartBtn = document.getElementById('restartBtn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', restartGame);
+    }
+});
+
+// 게임 일시정지/재개
+function togglePause() {
+    gameState.isPaused = !gameState.isPaused;
+    console.log(gameState.isPaused ? "게임이 일시정지되었습니다." : "게임이 재개되었습니다.");
+}
+
+// 레벨 업
+function levelUp() {
+    gameState.level++;
+    console.log(`레벨 ${gameState.level}로 업그레이드!`);
+}
+
+// 적 처치 시 점수 추가
+function enemyDefeated() {
+    gameState.enemiesDefeated++;
+    updateScore(10);
+    
+    // 10마리 처치마다 레벨업
+    if (gameState.enemiesDefeated % 10 === 0) {
+        levelUp();
+    }
+}
 
 // 스테이지 정보
 const stageInfo = {

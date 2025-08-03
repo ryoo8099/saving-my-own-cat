@@ -1,101 +1,109 @@
 // 게임 루프
 function gameLoop() {
+    // 게임 오버 상태 체크
+    if (gameState.gameOver) {
+        return; // 게임 오버 시 루프 중단
+    }
+    
+    // 일시정지 상태 체크
+    if (gameState.isPaused) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+    
+    // 캔버스 크기 조정 (모바일 최적화)
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 화면 크기에 맞게 캔버스 조정
+    const container = canvas.parentElement;
+    const maxWidth = Math.min(800, window.innerWidth - 40);
+    const maxHeight = Math.min(400, window.innerHeight * 0.6);
+    
+    canvas.style.width = maxWidth + 'px';
+    canvas.style.height = maxHeight + 'px';
+    
     // 화면 클리어
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (!gameState.gameOver && !gameState.petRescued) {
-        // 전쟁 배경 그리기
-        drawWarBackground();
-        
-        // 플레이어 업데이트
+    // 배경 그리기
+    drawBackground(ctx);
+    
+    // 플레이어 업데이트 및 그리기
+    if (typeof updatePlayer === 'function') {
         updatePlayer();
-        
-        // 총알 업데이트
-        updateBullets();
-        
-        // 자주포 총알 업데이트
-        updateArtilleryBullets();
-        
-        // 군인 고양이 자주포 발사
-        fireArtillery();
-        
-        // 폭격기 업데이트
-        updateBombers();
-        
-        // 적 업데이트
-        updateEnemies();
-        
-        // 보스 업데이트
-        updateBosses();
-        
-        // 적 총알 업데이트
-        updateEnemyBullets();
-        
-        // 충돌 체크
-        checkCollisions();
-        
-        // 자동 철장 열기 체크
-        checkAutoOpenCage();
-        
-        // 스테이지 3에서 열쇠를 얻은 후에는 적 생성 중단
-        if (!(gameState.stage === 3 && gameState.hasKey)) {
-            // 적 생성 (0.5초마다)
-            const currentTime = Date.now();
-            if (!gameState.lastEnemySpawnTime || currentTime - gameState.lastEnemySpawnTime > 500) {
-                createEnemy();
-                gameState.lastEnemySpawnTime = currentTime;
-            }
-            
-            // 보스 생성 (2초마다)
-            if (!gameState.lastBossSpawnTime || currentTime - gameState.lastBossSpawnTime > 2000) {
-                createBoss();
-                gameState.lastBossSpawnTime = currentTime;
-            }
-        }
-        
-        // 자동 재장전 (총알이 0이 되면 0.1초 후 자동 재장전)
-        if (gameState.ammo <= 0 && !gameState.isReloading) {
-            setTimeout(() => {
-                gameState.ammo = gameState.maxAmmo;
-                console.log("🔫 자동 재장전 완료!");
-            }, 100);
-        }
-        
-        // 게임오버 체크
-        if (gameState.playerHP <= 0) {
-            gameState.gameOver = true;
-        }
-        
-        // 그리기
-        drawPlayer();
-        drawSoldierCat();
-        drawBullets();
-        drawArtilleryBullets();
-        drawBombers();
-        drawEnemies();
-        drawBosses();
-        drawEnemyBullets();
-        drawCagedCat();
-        drawKey();
-        drawUI();
-        
-        // 게임 클리어 체크
-        drawGameClear();
-    } else if (gameState.gameOver) {
-        drawGameOver();
-    } else if (gameState.petRescued) {
-        // 구출 완료 시 축하 배경 그리기
-        drawCelebrationBackground();
-        drawFinalCelebration();
+    }
+    if (typeof drawPlayer === 'function') {
+        drawPlayer(ctx);
     }
     
+    // 적들 업데이트 및 그리기
+    if (typeof updateEnemies === 'function') {
+        updateEnemies();
+    }
+    if (typeof drawEnemies === 'function') {
+        drawEnemies(ctx);
+    }
+    
+    // 총알들 업데이트 및 그리기
+    if (typeof updateBullets === 'function') {
+        updateBullets();
+    }
+    if (typeof drawBullets === 'function') {
+        drawBullets(ctx);
+    }
+    
+    // 충돌 감지
+    if (typeof checkCollisions === 'function') {
+        checkCollisions();
+    }
+    
+    // UI 그리기
+    if (typeof drawUI === 'function') {
+        drawUI(ctx);
+    }
+    
+    // 다음 프레임 요청
     requestAnimationFrame(gameLoop);
 }
 
 // 게임 시작
-console.log("🐱 괴물을 물리치고, 너의 애완동물을 구하라! 게임이 시작되었습니다!");
+function startGame() {
+    console.log("게임이 시작되었습니다!");
+    gameLoop();
+}
 
-// 사운드 시스템 초기화
-initSounds();
+// 페이지 로드 시 게임 시작
+document.addEventListener('DOMContentLoaded', () => {
+    // 모바일 최적화 설정
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) {
+        // 터치 이벤트 최적화
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+    }
+    
+    // 게임 시작
+    startGame();
+});
 
-gameLoop(); 
+// 윈도우 리사이즈 시 캔버스 크기 조정
+window.addEventListener('resize', () => {
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) {
+        const maxWidth = Math.min(800, window.innerWidth - 40);
+        const maxHeight = Math.min(400, window.innerHeight * 0.6);
+        
+        canvas.style.width = maxWidth + 'px';
+        canvas.style.height = maxHeight + 'px';
+    }
+}); 
