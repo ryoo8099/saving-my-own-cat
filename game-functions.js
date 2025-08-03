@@ -160,19 +160,16 @@ function drawEnemies(ctx) {
 
 // 총알 생성
 function createBullet() {
-    if (gameState.ammo > 0) {
-        const bullet = {
-            x: player.x + player.width,
-            y: player.y + player.height/2,
-            width: 10,
-            height: 5,
-            speed: 8,
-            color: '#FFFF00'
-        };
-        bullets.push(bullet);
-        gameState.ammo--;
-        console.log("총알 발사!");
-    }
+    const bullet = {
+        x: player.x + player.width,
+        y: player.y + player.height/2,
+        width: 10,
+        height: 5,
+        speed: 8,
+        color: '#FFFF00'
+    };
+    bullets.push(bullet);
+    console.log("총알 발사!");
 }
 
 // 총알들 업데이트
@@ -187,11 +184,13 @@ function updateBullets() {
     });
     
     // 발사 처리
-    if (keys['1'] && gameState.ammo > 0) {
-        if (!keys.lastShot || Date.now() - keys.lastShot > 200) {
-            createBullet();
-            keys.lastShot = Date.now();
-        }
+    if (keys['1'] && !keys.lastShot) {
+        createBullet();
+        keys.lastShot = true;
+    }
+    
+    if (!keys['1']) {
+        keys.lastShot = false;
     }
 }
 
@@ -221,9 +220,7 @@ function checkCollisions() {
                 enemies.splice(eIndex, 1);
                 
                 // 점수 추가
-                if (typeof enemyDefeated === 'function') {
-                    enemyDefeated();
-                } else {
+                if (gameState) {
                     gameState.score += 10;
                     console.log("적 처치! 점수:", gameState.score);
                 }
@@ -239,9 +236,7 @@ function checkCollisions() {
             player.y + player.height > enemy.y) {
             
             // 게임 오버
-            if (typeof gameOver === 'function') {
-                gameOver();
-            } else {
+            if (gameState) {
                 gameState.gameOver = true;
                 console.log("게임 오버!");
             }
@@ -254,16 +249,16 @@ function drawUI(ctx) {
     // 점수
     ctx.fillStyle = 'black';
     ctx.font = 'bold 20px Arial';
-    ctx.fillText(`점수: ${gameState.score}`, 10, 30);
+    ctx.fillText(`점수: ${gameState ? gameState.score : 0}`, 10, 30);
     
     // 총알 수
-    ctx.fillText(`총알: ${gameState.ammo}`, 10, 60);
+    ctx.fillText(`총알: ${gameState ? gameState.ammo : 30}`, 10, 60);
     
     // 레벨
-    ctx.fillText(`레벨: ${gameState.level}`, 10, 90);
+    ctx.fillText(`레벨: ${gameState ? gameState.level : 1}`, 10, 90);
     
     // 게임 오버 메시지
-    if (gameState.gameOver) {
+    if (gameState && gameState.gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
         ctx.fillRect(0, 0, 800, 400);
         

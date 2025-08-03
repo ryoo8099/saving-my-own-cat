@@ -1,16 +1,5 @@
 // 게임 루프
 function gameLoop() {
-    // 게임 오버 상태 체크
-    if (gameState && gameState.gameOver) {
-        return; // 게임 오버 시 루프 중단
-    }
-    
-    // 일시정지 상태 체크
-    if (gameState && gameState.isPaused) {
-        requestAnimationFrame(gameLoop);
-        return;
-    }
-    
     // 캔버스 가져오기
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -26,48 +15,25 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // 배경 그리기
-    if (typeof drawBackground === 'function') {
-        drawBackground(ctx);
-    }
+    drawBackground(ctx);
     
     // 플레이어 업데이트 및 그리기
-    if (typeof updatePlayer === 'function') {
-        updatePlayer();
-    }
-    if (typeof drawPlayer === 'function') {
-        drawPlayer(ctx);
-    }
+    updatePlayer();
+    drawPlayer(ctx);
     
     // 적들 업데이트 및 그리기
-    if (typeof updateEnemies === 'function') {
-        updateEnemies();
-    }
-    if (typeof drawEnemies === 'function') {
-        drawEnemies(ctx);
-    }
+    updateEnemies();
+    drawEnemies(ctx);
     
     // 총알들 업데이트 및 그리기
-    if (typeof updateBullets === 'function') {
-        updateBullets();
-    }
-    if (typeof drawBullets === 'function') {
-        drawBullets(ctx);
-    }
+    updateBullets();
+    drawBullets(ctx);
     
     // 충돌 감지
-    if (typeof checkCollisions === 'function') {
-        checkCollisions();
-    }
+    checkCollisions();
     
     // UI 그리기
-    if (typeof drawUI === 'function') {
-        drawUI(ctx);
-    }
-    
-    // 게임 클리어 체크
-    if (gameState && gameState.petRescued && typeof drawGameClear === 'function') {
-        drawGameClear(ctx);
-    }
+    drawUI(ctx);
     
     // 다음 프레임 요청
     requestAnimationFrame(gameLoop);
@@ -79,17 +45,13 @@ function startGame() {
     
     // 초기 적 생성
     setTimeout(() => {
-        if (typeof createEnemy === 'function') {
-            createEnemy();
-        }
+        createEnemy();
     }, 2000);
     
     // 주기적으로 적 생성
     setInterval(() => {
-        if (gameState && !gameState.gameOver && enemies && enemies.length < 3) {
-            if (typeof createEnemy === 'function') {
-                createEnemy();
-            }
+        if (enemies.length < 3) {
+            createEnemy();
         }
     }, 3000);
     
