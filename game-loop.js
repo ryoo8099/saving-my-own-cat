@@ -58,6 +58,19 @@ function gameLoop() {
 // 게임 시작
 function startGame() {
     console.log("게임이 시작되었습니다!");
+    
+    // 초기 적 생성
+    setTimeout(() => {
+        createEnemy();
+    }, 2000);
+    
+    // 주기적으로 적 생성
+    setInterval(() => {
+        if (!gameState.gameOver && enemies.length < 3) {
+            createEnemy();
+        }
+    }, 3000);
+    
     gameLoop();
 }
 
